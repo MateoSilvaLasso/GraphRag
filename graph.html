@@ -1,0 +1,444 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script>function neighbourhoodHighlight(params) {
+  // console.log("in nieghbourhoodhighlight");
+  allNodes = nodes.get({ returnType: "Object" });
+  // originalNodes = JSON.parse(JSON.stringify(allNodes));
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    highlightActive = true;
+    var i, j;
+    var selectedNode = params.nodes[0];
+    var degrees = 2;
+
+    // mark all nodes as hard to read.
+    for (let nodeId in allNodes) {
+      // nodeColors[nodeId] = allNodes[nodeId].color;
+      allNodes[nodeId].color = "rgba(200,200,200,0.5)";
+      if (allNodes[nodeId].hiddenLabel === undefined) {
+        allNodes[nodeId].hiddenLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+    var connectedNodes = network.getConnectedNodes(selectedNode);
+    var allConnectedNodes = [];
+
+    // get the second degree nodes
+    for (i = 1; i < degrees; i++) {
+      for (j = 0; j < connectedNodes.length; j++) {
+        allConnectedNodes = allConnectedNodes.concat(
+          network.getConnectedNodes(connectedNodes[j])
+        );
+      }
+    }
+
+    // all second degree nodes get a different color and their label back
+    for (i = 0; i < allConnectedNodes.length; i++) {
+      // allNodes[allConnectedNodes[i]].color = "pink";
+      allNodes[allConnectedNodes[i]].color = "rgba(150,150,150,0.75)";
+      if (allNodes[allConnectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[allConnectedNodes[i]].label =
+          allNodes[allConnectedNodes[i]].hiddenLabel;
+        allNodes[allConnectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // all first degree nodes get their own color and their label back
+    for (i = 0; i < connectedNodes.length; i++) {
+      // allNodes[connectedNodes[i]].color = undefined;
+      allNodes[connectedNodes[i]].color = nodeColors[connectedNodes[i]];
+      if (allNodes[connectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[connectedNodes[i]].label =
+          allNodes[connectedNodes[i]].hiddenLabel;
+        allNodes[connectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // the main node gets its own color and its label back.
+    // allNodes[selectedNode].color = undefined;
+    allNodes[selectedNode].color = nodeColors[selectedNode];
+    if (allNodes[selectedNode].hiddenLabel !== undefined) {
+      allNodes[selectedNode].label = allNodes[selectedNode].hiddenLabel;
+      allNodes[selectedNode].hiddenLabel = undefined;
+    }
+  } else if (highlightActive === true) {
+    // console.log("highlightActive was true");
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      // allNodes[nodeId].color = "purple";
+      allNodes[nodeId].color = nodeColors[nodeId];
+      // delete allNodes[nodeId].color;
+      if (allNodes[nodeId].hiddenLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].hiddenLabel;
+        allNodes[nodeId].hiddenLabel = undefined;
+      }
+    }
+    highlightActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    // console.log("Nothing was selected");
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        // allNodes[nodeId].color = {};
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function filterHighlight(params) {
+  allNodes = nodes.get({ returnType: "Object" });
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    filterActive = true;
+    let selectedNodes = params.nodes;
+
+    // hiding all nodes and saving the label
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = true;
+      if (allNodes[nodeId].savedLabel === undefined) {
+        allNodes[nodeId].savedLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+
+    for (let i=0; i < selectedNodes.length; i++) {
+      allNodes[selectedNodes[i]].hidden = false;
+      if (allNodes[selectedNodes[i]].savedLabel !== undefined) {
+        allNodes[selectedNodes[i]].label = allNodes[selectedNodes[i]].savedLabel;
+        allNodes[selectedNodes[i]].savedLabel = undefined;
+      }
+    }
+
+  } else if (filterActive === true) {
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = false;
+      if (allNodes[nodeId].savedLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].savedLabel;
+        allNodes[nodeId].savedLabel = undefined;
+      }
+    }
+    filterActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function selectNode(nodes) {
+  network.selectNodes(nodes);
+  neighbourhoodHighlight({ nodes: nodes });
+  return nodes;
+}
+
+function selectNodes(nodes) {
+  network.selectNodes(nodes);
+  filterHighlight({nodes: nodes});
+  return nodes;
+}
+
+function highlightFilter(filter) {
+  let selectedNodes = []
+  let selectedProp = filter['property']
+  if (filter['item'] === 'node') {
+    let allNodes = nodes.get({ returnType: "Object" });
+    for (let nodeId in allNodes) {
+      if (allNodes[nodeId][selectedProp] && filter['value'].includes((allNodes[nodeId][selectedProp]).toString())) {
+        selectedNodes.push(nodeId)
+      }
+    }
+  }
+  else if (filter['item'] === 'edge'){
+    let allEdges = edges.get({returnType: 'object'});
+    // check if the selected property exists for selected edge and select the nodes connected to the edge
+    for (let edge in allEdges) {
+      if (allEdges[edge][selectedProp] && filter['value'].includes((allEdges[edge][selectedProp]).toString())) {
+        selectedNodes.push(allEdges[edge]['from'])
+        selectedNodes.push(allEdges[edge]['to'])
+      }
+    }
+  }
+  selectNodes(selectedNodes)
+}</script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+            
+            
+            
+            
+            
+
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 100%;
+                 height: 600px;
+                 background-color: #ffffff;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+             #loadingBar {
+                 position:absolute;
+                 top:0px;
+                 left:0px;
+                 width: 100%;
+                 height: 600px;
+                 background-color:rgba(200,200,200,0.8);
+                 -webkit-transition: all 0.5s ease;
+                 -moz-transition: all 0.5s ease;
+                 -ms-transition: all 0.5s ease;
+                 -o-transition: all 0.5s ease;
+                 transition: all 0.5s ease;
+                 opacity:1;
+             }
+
+             #bar {
+                 position:absolute;
+                 top:0px;
+                 left:0px;
+                 width:20px;
+                 height:20px;
+                 margin:auto auto auto auto;
+                 border-radius:11px;
+                 border:2px solid rgba(30,30,30,0.05);
+                 background: rgb(0, 173, 246); /* Old browsers */
+                 box-shadow: 2px 0px 4px rgba(0,0,0,0.4);
+             }
+
+             #border {
+                 position:absolute;
+                 top:10px;
+                 left:10px;
+                 width:500px;
+                 height:23px;
+                 margin:auto auto auto auto;
+                 box-shadow: 0px 0px 4px rgba(0,0,0,0.2);
+                 border-radius:10px;
+             }
+
+             #text {
+                 position:absolute;
+                 top:8px;
+                 left:530px;
+                 width:30px;
+                 height:50px;
+                 margin:auto auto auto auto;
+                 font-size:22px;
+                 color: #000000;
+             }
+
+             div.outerBorder {
+                 position:relative;
+                 top:400px;
+                 width:600px;
+                 height:44px;
+                 margin:auto auto auto auto;
+                 border:8px solid rgba(0,0,0,0.1);
+                 background: rgb(252,252,252); /* Old browsers */
+                 background: -moz-linear-gradient(top,  rgba(252,252,252,1) 0%, rgba(237,237,237,1) 100%); /* FF3.6+ */
+                 background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,rgba(252,252,252,1)), color-stop(100%,rgba(237,237,237,1))); /* Chrome,Safari4+ */
+                 background: -webkit-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* Chrome10+,Safari5.1+ */
+                 background: -o-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* Opera 11.10+ */
+                 background: -ms-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* IE10+ */
+                 background: linear-gradient(to bottom,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* W3C */
+                 filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#fcfcfc', endColorstr='#ededed',GradientType=0 ); /* IE6-9 */
+                 border-radius:72px;
+                 box-shadow: 0px 0px 10px rgba(0,0,0,0.2);
+             }
+             
+
+             
+
+             
+        </style>
+    </head>
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+            <div id="loadingBar">
+              <div class="outerBorder">
+                <div id="text">0%</div>
+                <div id="border">
+                  <div id="bar"></div>
+                </div>
+              </div>
+            </div>
+        
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"color": "#97c2fc", "id": "El bogotazo", "label": "El bogotazo", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Rioting", "label": "Rioting", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Assassination", "label": "Assassination", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Mariano ospina p\u00e9rez", "label": "Mariano ospina p\u00e9rez", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Portal pol\u00edtico cultural", "label": "Portal pol\u00edtico cultural", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Hechos del 9 de abril de 1948", "label": "Hechos del 9 de abril de 1948", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Paul wolf", "label": "Paul wolf", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Eduardo galeano", "label": "Eduardo galeano", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Private property", "label": "Private property", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Gait\u00e1n\u0027s murder", "label": "Gait\u00e1n\u0027s murder", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Bogot\u00e1", "label": "Bogot\u00e1", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Jorge eli\u00e9cer gait\u00e1n", "label": "Jorge eli\u00e9cer gait\u00e1n", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Violence", "label": "Violence", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "9th pan-american conference", "label": "9th pan-american conference", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Liberal leader", "label": "Liberal leader", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Presidential candidate", "label": "Presidential candidate", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Riot", "label": "Riot", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Downtown bogot\u00e1", "label": "Downtown bogot\u00e1", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Murder", "label": "Murder", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Government mariano ospina p\u00e9rez", "label": "Government mariano ospina p\u00e9rez", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Sectors", "label": "Sectors", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Colombian communist party", "label": "Colombian communist party", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Fidel castro", "label": "Fidel castro", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Cia", "label": "Cia", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "President ospina", "label": "President ospina", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "1930", "label": "1930", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Cities", "label": "Cities", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "1940s", "label": "1940s", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Colombia", "label": "Colombia", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Political system", "label": "Political system", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Convivencia", "label": "Convivencia", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Civility", "label": "Civility", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Liberals", "label": "Liberals", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Conservatives", "label": "Conservatives", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Department caldas", "label": "Department caldas", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Prayer humble", "label": "Prayer humble", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Doctor gait\u00e1n", "label": "Doctor gait\u00e1n", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Conservadores", "label": "Conservadores", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Gobierno ospina p\u00e9rez", "label": "Gobierno ospina p\u00e9rez", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Government", "label": "Government", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Cold war", "label": "Cold war", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Stages", "label": "Stages", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Communist regimes", "label": "Communist regimes", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Eastern europe", "label": "Eastern europe", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Washington", "label": "Washington", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Position", "label": "Position", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "George marshall", "label": "George marshall", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "State", "label": "State", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Gait\u00e1n", "label": "Gait\u00e1n", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Demonstration", "label": "Demonstration", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Speech", "label": "Speech", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Manizales", "label": "Manizales", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Home", "label": "Home", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Office", "label": "Office", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Lunch", "label": "Lunch", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Ground", "label": "Ground", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Roa sierra", "label": "Roa sierra", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Police officer", "label": "Police officer", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Mendoza neira", "label": "Mendoza neira", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Gunman", "label": "Gunman", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Prisoner", "label": "Prisoner", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Gun", "label": "Gun", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Dar\u00edo echand\u00eda", "label": "Dar\u00edo echand\u00eda", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "March silence", "label": "March silence", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Prayer peace", "label": "Prayer peace", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "History mental illness", "label": "History mental illness", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Unstable", "label": "Unstable", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Gait\u00e1n office", "label": "Gait\u00e1n office", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Job", "label": "Job", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Shoot gun", "label": "Shoot gun", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "People", "label": "People", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Downtown", "label": "Downtown", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Political conflicts", "label": "Political conflicts", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Pipes", "label": "Pipes", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Hooks", "label": "Hooks", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Stolen objects", "label": "Stolen objects", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Merchandise alcohol", "label": "Merchandise alcohol", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "President ospina p\u00e9rez", "label": "President ospina p\u00e9rez", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Group", "label": "Group", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Man", "label": "Man", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Killing gait\u00e1n", "label": "Killing gait\u00e1n", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Jim\u00e9nez", "label": "Jim\u00e9nez", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Gray hat", "label": "Gray hat", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Mob", "label": "Mob", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Officer jim\u00e9nez", "label": "Officer jim\u00e9nez", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Drugstore owner", "label": "Drugstore owner", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Witnesses", "label": "Witnesses", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Newspapers", "label": "Newspapers", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Corpse", "label": "Corpse", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Bol\u00edvar square", "label": "Bol\u00edvar square", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Face", "label": "Face", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Brick", "label": "Brick", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Bystander", "label": "Bystander", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Clothes", "label": "Clothes", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Documents", "label": "Documents", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Juan roa sierra", "label": "Juan roa sierra", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Assassin", "label": "Assassin", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Accurate shots", "label": "Accurate shots", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Crime", "label": "Crime", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Political reasons", "label": "Political reasons", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Interests foreign countries", "label": "Interests foreign countries", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Weapons", "label": "Weapons", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Radio estaci\u00f3n \u00faltimas noticias", "label": "Radio estaci\u00f3n \u00faltimas noticias", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Followers gait\u00e1n", "label": "Followers gait\u00e1n", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Little interest", "label": "Little interest", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Instructions", "label": "Instructions", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Molotov cocktails", "label": "Molotov cocktails", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Crowd", "label": "Crowd", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Clinica central", "label": "Clinica central", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Palace", "label": "Palace", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Liberal leaders", "label": "Liberal leaders", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Liberal party leaders", "label": "Liberal party leaders", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Gait\u00e1n\u0027s body", "label": "Gait\u00e1n\u0027s body", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Phone call", "label": "Phone call", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Party", "label": "Party", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Mobs", "label": "Mobs", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Casa de nari\u00f1o", "label": "Casa de nari\u00f1o", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Police headquarters", "label": "Police headquarters", "shape": "dot", "size": 10}]);
+                  edges = new vis.DataSet([{"arrows": "to", "from": "El bogotazo", "label": "Outbreak of", "title": "Outbreak of", "to": "Rioting", "width": 1}, {"arrows": "to", "from": "El bogotazo", "label": "After", "title": "After", "to": "Assassination", "width": 1}, {"arrows": "to", "from": "El bogotazo", "label": "During government of", "title": "During government of", "to": "Mariano ospina p\u00e9rez", "width": 1}, {"arrows": "to", "from": "El bogotazo", "label": "Is", "title": "Is", "to": "Portal pol\u00edtico cultural", "width": 1}, {"arrows": "to", "from": "El bogotazo", "label": "Inspired by", "title": "Inspired by", "to": "Hechos del 9 de abril de 1948", "width": 1}, {"arrows": "to", "from": "El bogotazo", "label": "Recopilaci\u00f3n de", "title": "Recopilaci\u00f3n de", "to": "Paul wolf", "width": 1}, {"arrows": "to", "from": "El bogotazo", "label": "Por", "title": "Por", "to": "Eduardo galeano", "width": 1}, {"arrows": "to", "from": "Rioting", "label": "Extended to", "title": "Extended to", "to": "Private property", "width": 1}, {"arrows": "to", "from": "Rioting", "label": "Followed", "title": "Followed", "to": "Gait\u00e1n\u0027s murder", "width": 1}, {"arrows": "to", "from": "Assassination", "label": "In", "title": "In", "to": "Bogot\u00e1", "width": 1}, {"arrows": "to", "from": "Assassination", "label": "Of", "title": "Of", "to": "Jorge eli\u00e9cer gait\u00e1n", "width": 1}, {"arrows": "to", "from": "Gait\u00e1n\u0027s murder", "label": "Followed", "title": "Followed", "to": "Violence", "width": 1}, {"arrows": "to", "from": "Bogot\u00e1", "label": "Held in", "title": "Held in", "to": "9th pan-american conference", "width": 1}, {"arrows": "to", "from": "Jorge eli\u00e9cer gait\u00e1n", "label": "Was", "title": "Was", "to": "Liberal leader", "width": 1}, {"arrows": "to", "from": "Jorge eli\u00e9cer gait\u00e1n", "label": "Was", "title": "Was", "to": "Presidential candidate", "width": 1}, {"arrows": "to", "from": "Riot", "label": "Destroyed", "title": "Destroyed", "to": "Downtown bogot\u00e1", "width": 1}, {"arrows": "to", "from": "Murder", "label": "Escalated", "title": "Escalated", "to": "Violence", "width": 1}, {"arrows": "to", "from": "Murder", "label": "Involved in", "title": "Involved in", "to": "Government mariano ospina p\u00e9rez", "width": 1}, {"arrows": "to", "from": "Murder", "label": "Involved in", "title": "Involved in", "to": "Sectors", "width": 1}, {"arrows": "to", "from": "Murder", "label": "Involved in", "title": "Involved in", "to": "Colombian communist party", "width": 1}, {"arrows": "to", "from": "Murder", "label": "Involved in", "title": "Involved in", "to": "Fidel castro", "width": 1}, {"arrows": "to", "from": "Murder", "label": "Involved in", "title": "Involved in", "to": "Cia", "width": 1}, {"arrows": "to", "from": "Murder", "label": "Notified of", "title": "Notified of", "to": "President ospina", "width": 1}, {"arrows": "to", "from": "Violence", "label": "Began", "title": "Began", "to": "1930", "width": 1}, {"arrows": "to", "from": "Violence", "label": "Exploded in", "title": "Exploded in", "to": "Cities", "width": 1}, {"arrows": "to", "from": "1940s", "label": "Reigning political system", "title": "Reigning political system", "to": "Colombia", "width": 1}, {"arrows": "to", "from": "Political system", "label": "Called", "title": "Called", "to": "Convivencia", "width": 1}, {"arrows": "to", "from": "Convivencia", "label": "Politics", "title": "Politics", "to": "Civility", "width": 1}, {"arrows": "to", "from": "Convivencia", "label": "Between", "title": "Between", "to": "Liberals", "width": 1}, {"arrows": "to", "from": "Convivencia", "label": "Between", "title": "Between", "to": "Conservatives", "width": 1}, {"arrows": "to", "from": "Liberals", "label": "Massacred in", "title": "Massacred in", "to": "Department caldas", "width": 1}, {"arrows": "to", "from": "Liberals", "label": "Tribute to", "title": "Tribute to", "to": "Prayer humble", "width": 1}, {"arrows": "to", "from": "Conservatives", "label": "Assassinated", "title": "Assassinated", "to": "Doctor gait\u00e1n", "width": 1}, {"arrows": "to", "from": "Doctor gait\u00e1n", "label": "Asesinar", "title": "Asesinar", "to": "Conservadores", "width": 1}, {"arrows": "to", "from": "Doctor gait\u00e1n", "label": "Asesinar", "title": "Asesinar", "to": "Gobierno ospina p\u00e9rez", "width": 1}, {"arrows": "to", "from": "Doctor gait\u00e1n", "label": "Assassinated", "title": "Assassinated", "to": "Government", "width": 1}, {"arrows": "to", "from": "Cold war", "label": "Early", "title": "Early", "to": "Stages", "width": 1}, {"arrows": "to", "from": "Communist regimes", "label": "Installed throughout", "title": "Installed throughout", "to": "Eastern europe", "width": 1}, {"arrows": "to", "from": "Washington", "label": "Eager to set", "title": "Eager to set", "to": "Position", "width": 1}, {"arrows": "to", "from": "George marshall", "label": "U.s. secretary", "title": "U.s. secretary", "to": "State", "width": 1}, {"arrows": "to", "from": "Gait\u00e1n", "label": "Led", "title": "Led", "to": "Demonstration", "width": 1}, {"arrows": "to", "from": "Gait\u00e1n", "label": "Delivered", "title": "Delivered", "to": "Speech", "width": 1}, {"arrows": "to", "from": "Gait\u00e1n", "label": "Expressed himself", "title": "Expressed himself", "to": "Manizales", "width": 1}, {"arrows": "to", "from": "Gait\u00e1n", "label": "Arrived", "title": "Arrived", "to": "Home", "width": 1}, {"arrows": "to", "from": "Gait\u00e1n", "label": "Fell in front of", "title": "Fell in front of", "to": "Office", "width": 1}, {"arrows": "to", "from": "Gait\u00e1n", "label": "Invited", "title": "Invited", "to": "Lunch", "width": 1}, {"arrows": "to", "from": "Gait\u00e1n", "label": "Fell", "title": "Fell", "to": "Ground", "width": 1}, {"arrows": "to", "from": "Gait\u00e1n", "label": "Never received", "title": "Never received", "to": "Roa sierra", "width": 1}, {"arrows": "to", "from": "Gait\u00e1n", "label": "Shot by", "title": "Shot by", "to": "Police officer", "width": 1}, {"arrows": "to", "from": "Gait\u00e1n", "label": "Supporter", "title": "Supporter", "to": "Mendoza neira", "width": 1}, {"arrows": "to", "from": "Gait\u00e1n", "label": "Fired", "title": "Fired", "to": "Gunman", "width": 1}, {"arrows": "to", "from": "Gait\u00e1n", "label": "Killed", "title": "Killed", "to": "Prisoner", "width": 1}, {"arrows": "to", "from": "Gait\u00e1n", "label": "Used to kill", "title": "Used to kill", "to": "Gun", "width": 1}, {"arrows": "to", "from": "Gait\u00e1n", "label": "Replace", "title": "Replace", "to": "Dar\u00edo echand\u00eda", "width": 1}, {"arrows": "to", "from": "Demonstration", "label": "Known as", "title": "Known as", "to": "March silence", "width": 1}, {"arrows": "to", "from": "Speech", "label": "Known as", "title": "Known as", "to": "Prayer peace", "width": 1}, {"arrows": "to", "from": "Speech", "label": "Called", "title": "Called", "to": "Prayer humble", "width": 1}, {"arrows": "to", "from": "Roa sierra", "label": "Had", "title": "Had", "to": "History mental illness", "width": 1}, {"arrows": "to", "from": "Roa sierra", "label": "May have been", "title": "May have been", "to": "Unstable", "width": 1}, {"arrows": "to", "from": "Roa sierra", "label": "Seen in", "title": "Seen in", "to": "Gait\u00e1n office", "width": 1}, {"arrows": "to", "from": "Roa sierra", "label": "Asking for", "title": "Asking for", "to": "Job", "width": 1}, {"arrows": "to", "from": "Roa sierra", "label": "Never learned", "title": "Never learned", "to": "Shoot gun", "width": 1}, {"arrows": "to", "from": "March silence", "label": "Attended by", "title": "Attended by", "to": "People", "width": 1}, {"arrows": "to", "from": "People", "label": "Rushed", "title": "Rushed", "to": "Downtown", "width": 1}, {"arrows": "to", "from": "People", "label": "Flee", "title": "Flee", "to": "Political conflicts", "width": 1}, {"arrows": "to", "from": "People", "label": "Armed with", "title": "Armed with", "to": "Pipes", "width": 1}, {"arrows": "to", "from": "People", "label": "Armed with", "title": "Armed with", "to": "Hooks", "width": 1}, {"arrows": "to", "from": "People", "label": "Sell", "title": "Sell", "to": "Stolen objects", "width": 1}, {"arrows": "to", "from": "People", "label": "Exchanged", "title": "Exchanged", "to": "Merchandise alcohol", "width": 1}, {"arrows": "to", "from": "Prayer peace", "label": "Addressed to", "title": "Addressed to", "to": "President ospina p\u00e9rez", "width": 1}, {"arrows": "to", "from": "Group", "label": "Surprised", "title": "Surprised", "to": "Gunman", "width": 1}, {"arrows": "to", "from": "Man", "label": "Suspected", "title": "Suspected", "to": "Killing gait\u00e1n", "width": 1}, {"arrows": "to", "from": "Man", "label": "Surrendered", "title": "Surrendered", "to": "Jim\u00e9nez", "width": 1}, {"arrows": "to", "from": "Man", "label": "Wearing", "title": "Wearing", "to": "Gray hat", "width": 1}, {"arrows": "to", "from": "Man", "label": "Taken by", "title": "Taken by", "to": "Mob", "width": 1}, {"arrows": "to", "from": "Man", "label": "Mistaken", "title": "Mistaken", "to": "Officer jim\u00e9nez", "width": 1}, {"arrows": "to", "from": "Jim\u00e9nez", "label": "Locked", "title": "Locked", "to": "Prisoner", "width": 1}, {"arrows": "to", "from": "Prisoner", "label": "Asked", "title": "Asked", "to": "Drugstore owner", "width": 1}, {"arrows": "to", "from": "Witnesses", "label": "Interviewed by", "title": "Interviewed by", "to": "Newspapers", "width": 1}, {"arrows": "to", "from": "Corpse", "label": "Found in", "title": "Found in", "to": "Bol\u00edvar square", "width": 1}, {"arrows": "to", "from": "Face", "label": "Crushed with", "title": "Crushed with", "to": "Brick", "width": 1}, {"arrows": "to", "from": "Bystander", "label": "Collected", "title": "Collected", "to": "Clothes", "width": 1}, {"arrows": "to", "from": "Documents", "label": "Identified", "title": "Identified", "to": "Juan roa sierra", "width": 1}, {"arrows": "to", "from": "Assassin", "label": "Fired", "title": "Fired", "to": "Accurate shots", "width": 1}, {"arrows": "to", "from": "Crime", "label": "Planned for", "title": "Planned for", "to": "Political reasons", "width": 1}, {"arrows": "to", "from": "Crime", "label": "Promote", "title": "Promote", "to": "Interests foreign countries", "width": 1}, {"arrows": "to", "from": "Fidel castro", "label": "Took", "title": "Took", "to": "Weapons", "width": 1}, {"arrows": "to", "from": "Radio estaci\u00f3n \u00faltimas noticias", "label": "Managed by", "title": "Managed by", "to": "Followers gait\u00e1n", "width": 1}, {"arrows": "to", "from": "Government", "label": "Showed", "title": "Showed", "to": "Little interest", "width": 1}, {"arrows": "to", "from": "Instructions", "label": "Make", "title": "Make", "to": "Molotov cocktails", "width": 1}, {"arrows": "to", "from": "Crowd", "label": "Formed outside", "title": "Formed outside", "to": "Clinica central", "width": 1}, {"arrows": "to", "from": "Crowd", "label": "Attacked", "title": "Attacked", "to": "Palace", "width": 1}, {"arrows": "to", "from": "President ospina", "label": "Surprised", "title": "Surprised", "to": "Liberal leaders", "width": 1}, {"arrows": "to", "from": "Liberal party leaders", "label": "Nominated", "title": "Nominated", "to": "Dar\u00edo echand\u00eda", "width": 1}, {"arrows": "to", "from": "Liberal party leaders", "label": "Hospital", "title": "Hospital", "to": "Gait\u00e1n\u0027s body", "width": 1}, {"arrows": "to", "from": "Liberal party leaders", "label": "Received", "title": "Received", "to": "Phone call", "width": 1}, {"arrows": "to", "from": "Dar\u00edo echand\u00eda", "label": "Head of", "title": "Head of", "to": "Party", "width": 1}, {"arrows": "to", "from": "Mobs", "label": "Tried to force entry", "title": "Tried to force entry", "to": "Casa de nari\u00f1o", "width": 1}, {"arrows": "to", "from": "Mobs", "label": "Broke into", "title": "Broke into", "to": "Police headquarters", "width": 1}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {
+    "configure": {
+        "enabled": false
+    },
+    "edges": {
+        "color": {
+            "inherit": true
+        },
+        "smooth": {
+            "enabled": true,
+            "type": "dynamic"
+        }
+    },
+    "interaction": {
+        "dragNodes": true,
+        "hideEdgesOnDrag": false,
+        "hideNodesOnDrag": false
+    },
+    "physics": {
+        "enabled": true,
+        "stabilization": {
+            "enabled": true,
+            "fit": true,
+            "iterations": 1000,
+            "onlyDynamicEdges": false,
+            "updateInterval": 50
+        }
+    }
+};
+
+                  
+
+
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+
+                  
+
+
+                  
+                      network.on("stabilizationProgress", function(params) {
+                          document.getElementById('loadingBar').removeAttribute("style");
+                          var maxWidth = 496;
+                          var minWidth = 20;
+                          var widthFactor = params.iterations/params.total;
+                          var width = Math.max(minWidth,maxWidth * widthFactor);
+                          document.getElementById('bar').style.width = width + 'px';
+                          document.getElementById('text').innerHTML = Math.round(widthFactor*100) + '%';
+                      });
+                      network.once("stabilizationIterationsDone", function() {
+                          document.getElementById('text').innerHTML = '100%';
+                          document.getElementById('bar').style.width = '496px';
+                          document.getElementById('loadingBar').style.opacity = 0;
+                          // really clean the dom element
+                          setTimeout(function () {document.getElementById('loadingBar').style.display = 'none';}, 500);
+                      });
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    </body>
+</html>
