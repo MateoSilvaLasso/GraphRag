@@ -1,3 +1,11 @@
+llama-index
 llama-index-graph-rag-cognee
 pandas
 llama-index-core
+llama-index-llms-google-genai
+llama-index-embeddings-google-genai
+pyvis
+ipython
+llama-index-readers-wikipedia
+wikipedia
+llama-index-readers-pdf-table
